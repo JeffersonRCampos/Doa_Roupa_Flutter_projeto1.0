@@ -8,6 +8,7 @@ import 'package:doa_roupa/tela/estoque.dart';
 import 'package:doa_roupa/tela/confirmar_doacoes.dart';
 import 'package:doa_roupa/banco/roupa_db.dart';
 import 'package:doa_roupa/tela/login.dart';
+import 'package:doa_roupa/tela/EditarPerfil.dart';
 
 class Home extends StatefulWidget {
   const Home({super.key});
@@ -112,7 +113,6 @@ class _HomeState extends State<Home> {
         leading: IconButton(
           icon: const Icon(Icons.arrow_back, color: Colors.white),
           onPressed: () async {
-            // Realiza logout e retorna à tela de login
             await client.auth.signOut();
             Navigator.pushReplacement(
               context,
@@ -120,6 +120,21 @@ class _HomeState extends State<Home> {
             );
           },
         ),
+        actions: [
+          TextButton.icon(
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const EditarPerfil()),
+              );
+            },
+            icon: const Icon(Icons.person, color: Colors.white),
+            label: const Text(
+              'Editar Perfil',
+              style: TextStyle(color: Colors.white),
+            ),
+          ),
+        ],
       ),
       body: Column(
         children: [

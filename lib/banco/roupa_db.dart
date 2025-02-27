@@ -8,7 +8,14 @@ class RoupaDatabase {
 
   // -------------------- Autenticação --------------------
   Future<String?> signUp(
-      String email, String senha, String nome, String papel) async {
+    String email,
+    String senha,
+    String nome,
+    String papel,
+    String genero,
+    int idade,
+    String? profileUrl, // novo parâmetro
+  ) async {
     final response = await client.auth.signUp(email: email, password: senha);
     if (response.user != null) {
       await client.from('usuarios').insert({
@@ -16,6 +23,9 @@ class RoupaDatabase {
         'nome': nome,
         'email': email,
         'papel': papel,
+        'genero': genero,
+        'idade': idade,
+        'profile_url': profileUrl, // inserindo a imagem de perfil
       });
     }
     return response.user?.id;
@@ -29,6 +39,7 @@ class RoupaDatabase {
   }
 
   Future<void> atualizarUsuario(Usuario usuario) async {
+    // Atualiza todos os campos do Usuario
     await client.from('usuarios').update(usuario.toMap()).eq('id', usuario.id);
   }
 
