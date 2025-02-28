@@ -1,7 +1,8 @@
 import 'dart:io';
+import 'dart:typed_data';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:doa_roupa/banco/roupa_db.dart';
-import 'package:doa_roupa/modelo/usuario.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:image_picker/image_picker.dart';
 
@@ -21,7 +22,7 @@ class _EditarPerfilState extends State<EditarPerfil> {
 
   final ImagePicker _picker = ImagePicker();
   File? _imageFile;
-
+  Uint8List? _imageBytes;
   @override
   void initState() {
     super.initState();
@@ -47,10 +48,17 @@ class _EditarPerfilState extends State<EditarPerfil> {
     try {
       final pickedFile = await _picker.pickImage(source: ImageSource.gallery);
       if (pickedFile != null) {
-        setState(() {
-          _imageFile = File(pickedFile.path);
-        });
-        String? uploadedUrl = await _uploadImage(File(pickedFile.path));
+        if (kIsWeb) {
+          final bytes = await pickedFile.readAsBytes();
+          setState(() {
+            _imageBytes = bytes;
+          });
+        } else {
+          setState(() {
+            _imageFile = File(pickedFile.path);
+          });
+        }
+        String? uploadedUrl = await _uploadImage(pickedFile);
         if (uploadedUrl != null) {
           setState(() {
             _profileUrlController.text = uploadedUrl;
@@ -64,15 +72,23 @@ class _EditarPerfilState extends State<EditarPerfil> {
     }
   }
 
-  Future<String?> _uploadImage(File imageFile) async {
+  Future<String?> _uploadImage(XFile pickedFile) async {
     try {
       final fileName =
-          '${DateTime.now().millisecondsSinceEpoch}_${imageFile.path.split('/').last}';
-      // Realiza o upload (não precisamos armazenar o resultado se não for necessário)
-      await Supabase.instance.client.storage
-          .from('profile-images')
-          .upload(fileName, imageFile);
-      // Obtém a URL pública
+          'profile-images/${DateTime.now().millisecondsSinceEpoch}_${pickedFile.name}';
+      if (kIsWeb) {
+        // Para Web, lê os bytes e faz upload via uploadBinary
+        final bytes = await pickedFile.readAsBytes();
+        await Supabase.instance.client.storage
+            .from('profile-images')
+            .uploadBinary(fileName, bytes,
+                fileOptions: FileOptions(contentType: 'image/png'));
+      } else {
+        // Para Mobile, cria um objeto File a partir do caminho da imagem
+        await Supabase.instance.client.storage
+            .from('profile-images')
+            .upload(fileName, File(pickedFile.path));
+      }
       final publicUrl = Supabase.instance.client.storage
           .from('profile-images')
           .getPublicUrl(fileName);
@@ -90,11 +106,8 @@ class _EditarPerfilState extends State<EditarPerfil> {
     if (currentUser != null) {
       final usuario = await _database.getUsuario(currentUser.id);
       if (usuario != null) {
-        final novoUsuario = Usuario(
-          id: usuario.id,
+        final novoUsuario = usuario.copyWith(
           nome: _nomeController.text,
-          email: usuario.email,
-          papel: usuario.papel,
           genero: _generoController.text,
           idade: int.tryParse(_idadeController.text),
           profileUrl: _profileUrlController.text.isNotEmpty
@@ -112,6 +125,15 @@ class _EditarPerfilState extends State<EditarPerfil> {
 
   @override
   Widget build(BuildContext context) {
+    ImageProvider? imageProvider;
+    if (_profileUrlController.text.isNotEmpty) {
+      imageProvider = NetworkImage(_profileUrlController.text);
+    } else if (kIsWeb && _imageBytes != null) {
+      imageProvider = MemoryImage(_imageBytes!);
+    } else if (!kIsWeb && _imageFile != null) {
+      imageProvider = FileImage(_imageFile!);
+    }
+
     return Scaffold(
       appBar: AppBar(
         title: const Text('Editar Perfil'),
@@ -127,16 +149,11 @@ class _EditarPerfilState extends State<EditarPerfil> {
                 child: CircleAvatar(
                   radius: 50,
                   backgroundColor: Colors.grey[300],
-                  backgroundImage: _profileUrlController.text.isNotEmpty
-                      ? NetworkImage(_profileUrlController.text)
-                      : _imageFile != null
-                          ? FileImage(_imageFile!) as ImageProvider
-                          : null,
-                  child:
-                      (_profileUrlController.text.isEmpty && _imageFile == null)
-                          ? const Icon(Icons.camera_alt,
-                              size: 40, color: Colors.black54)
-                          : null,
+                  backgroundImage: imageProvider,
+                  child: imageProvider == null
+                      ? const Icon(Icons.camera_alt,
+                          size: 40, color: Colors.black54)
+                      : null,
                 ),
               ),
             ),
@@ -155,12 +172,6 @@ class _EditarPerfilState extends State<EditarPerfil> {
               controller: _idadeController,
               decoration: const InputDecoration(labelText: 'Idade'),
               keyboardType: TextInputType.number,
-            ),
-            const SizedBox(height: 16),
-            TextFormField(
-              controller: _profileUrlController,
-              decoration: const InputDecoration(
-                  labelText: 'URL da Imagem de Perfil (opcional)'),
             ),
             const SizedBox(height: 30),
             ElevatedButton(

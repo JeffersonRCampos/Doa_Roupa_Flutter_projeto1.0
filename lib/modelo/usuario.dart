@@ -3,9 +3,9 @@ class Usuario {
   final String nome;
   final String email;
   final String papel;
-  final String? genero; // Pode ser null
-  final int? idade; // Pode ser null
-  final String? profileUrl; // Nova imagem de perfil (URL)
+  final String? genero;
+  final int? idade;
+  final String? profileUrl; // URL da imagem armazenada no Supabase Storage
 
   Usuario({
     required this.id,
@@ -25,7 +25,7 @@ class Usuario {
       papel: map['papel'] ?? 'doador',
       genero: map['genero'],
       idade: map['idade'],
-      profileUrl: map['profile_url'], // coluna no banco: profile_url
+      profileUrl: map['profile_url'],
     );
   }
 
@@ -39,5 +39,23 @@ class Usuario {
       'idade': idade,
       'profile_url': profileUrl,
     };
+  }
+
+  // Método para criar um novo objeto com campos atualizados
+  Usuario copyWith({
+    String? nome,
+    String? genero,
+    int? idade,
+    String? profileUrl,
+  }) {
+    return Usuario(
+      id: id,
+      nome: nome ?? this.nome,
+      email: email,
+      papel: papel,
+      genero: genero ?? this.genero,
+      idade: idade ?? this.idade,
+      profileUrl: profileUrl ?? this.profileUrl,
+    );
   }
 }
