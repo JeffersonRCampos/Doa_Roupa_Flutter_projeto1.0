@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:doa_roupa/modelo/atividade.dart';
@@ -19,7 +20,33 @@ class _CriarAtividadeState extends State<CriarAtividade> {
   // Lista de itens solicitados
   final List<Map<String, dynamic>> _itens = [];
 
-  // Adiciona um novo item à lista de itens solicitados
+  /// Exibe um diálogo para coletar informações.
+  Future<String?> _mostrarDialogoItem(String titulo) async {
+    final controller = TextEditingController();
+    return showDialog<String>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(titulo),
+        content: TextField(
+          controller: controller,
+          keyboardType: titulo == 'Quantidade'
+              ? TextInputType.number
+              : TextInputType.text,
+          inputFormatters: titulo == 'Quantidade'
+              ? [FilteringTextInputFormatter.digitsOnly]
+              : [],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, controller.text),
+            child: const Text('Adicionar'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// Adiciona um novo item à lista.
   Future<void> _adicionarItem() async {
     final tipo = await _mostrarDialogoItem('Tipo de Roupa');
     final genero = await _mostrarDialogoItem('Gênero');
@@ -28,10 +55,10 @@ class _CriarAtividadeState extends State<CriarAtividade> {
     if (tipo != null &&
         genero != null &&
         tamanho != null &&
-        quantidade != null) {
+        quantidade != null &&
+        quantidade.isNotEmpty) {
       setState(() {
-        int q = int.parse(quantidade);
-        // Adiciona o campo "quantidade_total" com o valor inicial informado
+        int q = int.tryParse(quantidade) ?? 0;
         _itens.add({
           'tipo_roupa': tipo,
           'genero': genero,
@@ -43,25 +70,14 @@ class _CriarAtividadeState extends State<CriarAtividade> {
     }
   }
 
-  // Exibe um diálogo para inserir informações sobre o item
-  Future<String?> _mostrarDialogoItem(String titulo) async {
-    final controller = TextEditingController();
-    return showDialog<String>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: Text(titulo),
-        content: TextField(controller: controller),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, controller.text),
-            child: const Text('Adicionar'),
-          ),
-        ],
-      ),
-    );
+  /// Remove um item da lista.
+  void _removerItem(int index) {
+    setState(() {
+      _itens.removeAt(index);
+    });
   }
 
-  // Cria uma nova atividade e a insere no banco de dados
+  /// Cria a atividade e insere no banco de dados.
   Future<void> _criarAtividade() async {
     if (_tipoController.text.isEmpty ||
         _tituloController.text.isEmpty ||
@@ -75,7 +91,7 @@ class _CriarAtividadeState extends State<CriarAtividade> {
     final dataInicio = _parseData(_dataInicioController.text);
     final dataFim = _parseData(_dataFimController.text);
 
-    // Valida datas: data fim deve ser após data início e após a data atual
+    // Valida datas: data fim deve ser posterior à data início e à data atual
     if (dataInicio == null ||
         dataFim == null ||
         dataInicio.isAfter(dataFim) ||
@@ -110,7 +126,7 @@ class _CriarAtividadeState extends State<CriarAtividade> {
     }
   }
 
-  // Converte uma string no formato 'dd/MM/yyyy' para DateTime
+  /// Converte uma string no formato 'dd/MM/yyyy' para DateTime.
   DateTime? _parseData(String data) {
     try {
       return DateFormat('dd/MM/yyyy').parse(data);
@@ -137,7 +153,7 @@ class _CriarAtividadeState extends State<CriarAtividade> {
         padding: const EdgeInsets.all(16.0),
         child: Column(
           children: [
-            // Campo Tipo
+            // Campos para os dados da atividade
             TextFormField(
               controller: _tipoController,
               decoration: InputDecoration(
@@ -149,7 +165,6 @@ class _CriarAtividadeState extends State<CriarAtividade> {
               ),
             ),
             const SizedBox(height: 16),
-            // Campo Título
             TextFormField(
               controller: _tituloController,
               decoration: InputDecoration(
@@ -161,7 +176,6 @@ class _CriarAtividadeState extends State<CriarAtividade> {
               ),
             ),
             const SizedBox(height: 16),
-            // Campo Descrição
             TextFormField(
               controller: _descricaoController,
               decoration: InputDecoration(
@@ -173,7 +187,6 @@ class _CriarAtividadeState extends State<CriarAtividade> {
               ),
             ),
             const SizedBox(height: 16),
-            // Campo Data Início
             TextFormField(
               controller: _dataInicioController,
               decoration: InputDecoration(
@@ -185,7 +198,6 @@ class _CriarAtividadeState extends State<CriarAtividade> {
               ),
             ),
             const SizedBox(height: 16),
-            // Campo Data Fim
             TextFormField(
               controller: _dataFimController,
               decoration: InputDecoration(
@@ -197,36 +209,53 @@ class _CriarAtividadeState extends State<CriarAtividade> {
               ),
             ),
             const SizedBox(height: 20),
-            // Título da lista de itens
             const Text(
               'Itens Solicitados:',
               style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 10),
-            // Lista de itens solicitados
+            // Lista de itens com opção de editar e remover
             Expanded(
               child: ListView.builder(
                 itemCount: _itens.length,
-                itemBuilder: (context, index) => Card(
-                  margin: const EdgeInsets.symmetric(vertical: 4),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(10),
-                  ),
-                  elevation: 2,
-                  child: ListTile(
-                    title: Text(
-                      '${_itens[index]['quantidade']} ${_itens[index]['tipo_roupa']}',
-                      style: const TextStyle(fontWeight: FontWeight.bold),
+                itemBuilder: (context, index) {
+                  final item = _itens[index];
+                  return Card(
+                    margin: const EdgeInsets.symmetric(vertical: 4),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(10),
                     ),
-                    subtitle: Text(
-                      'Tamanho: ${_itens[index]['tamanho']}, Gênero: ${_itens[index]['genero']}',
+                    elevation: 2,
+                    child: ListTile(
+                      title: Text(
+                        '${item['quantidade']} ${item['tipo_roupa']}',
+                        style: const TextStyle(fontWeight: FontWeight.bold),
+                      ),
+                      subtitle: Text(
+                        'Tamanho: ${item['tamanho']}, Gênero: ${item['genero']}',
+                      ),
+                      trailing: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          IconButton(
+                            icon: const Icon(Icons.edit, color: Colors.blue),
+                            onPressed: () async {
+                              await _editarItem(index);
+                            },
+                          ),
+                          IconButton(
+                            icon: const Icon(Icons.delete, color: Colors.red),
+                            onPressed: () => _removerItem(index),
+                          ),
+                        ],
+                      ),
                     ),
-                  ),
-                ),
+                  );
+                },
               ),
             ),
             const SizedBox(height: 16),
-            // Botão Adicionar Item
+            // Botões para adicionar item e criar atividade
             ElevatedButton(
               onPressed: _adicionarItem,
               style: ElevatedButton.styleFrom(
@@ -241,7 +270,6 @@ class _CriarAtividadeState extends State<CriarAtividade> {
               ),
             ),
             const SizedBox(height: 16),
-            // Botão Criar Atividade
             ElevatedButton(
               onPressed: _criarAtividade,
               style: ElevatedButton.styleFrom(
@@ -259,5 +287,68 @@ class _CriarAtividadeState extends State<CriarAtividade> {
         ),
       ),
     );
+  }
+
+  /// Permite editar um item já adicionado.
+  Future<void> _editarItem(int index) async {
+    final currentItem = _itens[index];
+    final tipoController =
+        TextEditingController(text: currentItem['tipo_roupa']);
+    final generoController = TextEditingController(text: currentItem['genero']);
+    final tamanhoController =
+        TextEditingController(text: currentItem['tamanho']);
+    final quantidadeController =
+        TextEditingController(text: currentItem['quantidade'].toString());
+
+    final result = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Editar Item'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            TextField(
+              controller: tipoController,
+              decoration: const InputDecoration(labelText: 'Tipo de Roupa'),
+            ),
+            TextField(
+              controller: generoController,
+              decoration: const InputDecoration(labelText: 'Gênero'),
+            ),
+            TextField(
+              controller: tamanhoController,
+              decoration: const InputDecoration(labelText: 'Tamanho'),
+            ),
+            TextField(
+              controller: quantidadeController,
+              decoration: const InputDecoration(labelText: 'Quantidade'),
+              keyboardType: TextInputType.number,
+              inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+              onPressed: () => Navigator.pop(context, false),
+              child: const Text('Cancelar')),
+          TextButton(
+              onPressed: () => Navigator.pop(context, true),
+              child: const Text('Salvar')),
+        ],
+      ),
+    );
+
+    if (result == true) {
+      setState(() {
+        int q = int.tryParse(quantidadeController.text) ?? 0;
+        _itens[index] = {
+          'tipo_roupa': tipoController.text,
+          'genero': generoController.text,
+          'tamanho': tamanhoController.text,
+          'quantidade': q,
+          'quantidade_total': q,
+        };
+      });
+    }
   }
 }

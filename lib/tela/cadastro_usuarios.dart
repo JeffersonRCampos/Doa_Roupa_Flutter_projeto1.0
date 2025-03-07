@@ -19,7 +19,7 @@ class _CadastroUsuarioState extends State<CadastroUsuario> {
 
   // Variáveis para seleção de gênero e papel
   String _genero = 'Masculino'; // Valor padrão para gênero
-  String _papel = 'doador'; // Valor padrão para papel
+  final String _papel = 'doador'; // Valor padrão para papel
 
   // Função para cadastrar o usuário no Supabase
   Future<void> _cadastrar() async {
