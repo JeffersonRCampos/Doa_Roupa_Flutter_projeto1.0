@@ -19,9 +19,13 @@ class _EditarPerfilState extends State<EditarPerfil> {
   final _idadeController = TextEditingController();
   final _profileUrlController = TextEditingController();
 
+  // Variável para armazenar o cargo atual do usuário
+  String _cargo = '';
+
   final ImagePicker _picker = ImagePicker();
   File? _imageFile;
   Uint8List? _imageBytes;
+
   @override
   void initState() {
     super.initState();
@@ -31,14 +35,21 @@ class _EditarPerfilState extends State<EditarPerfil> {
   Future<void> _carregarDadosUsuario() async {
     final currentUser = Supabase.instance.client.auth.currentUser;
     if (currentUser != null) {
-      final usuario = await _database.getUsuario(currentUser.id);
-      if (usuario != null) {
-        setState(() {
-          _nomeController.text = usuario.nome;
-          _generoController.text = usuario.genero ?? '';
-          _idadeController.text = usuario.idade?.toString() ?? '';
-          _profileUrlController.text = usuario.profileUrl ?? '';
-        });
+      try {
+        final usuario = await _database.getUsuario(currentUser.id);
+        if (usuario != null) {
+          setState(() {
+            _nomeController.text = usuario.nome;
+            _generoController.text = usuario.genero ?? '';
+            _idadeController.text = usuario.idade?.toString() ?? '';
+            _profileUrlController.text = usuario.profileUrl ?? '';
+            _cargo = usuario.papel;
+          });
+        }
+      } catch (error) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Erro ao carregar dados: $error')),
+        );
       }
     }
   }
@@ -64,9 +75,9 @@ class _EditarPerfilState extends State<EditarPerfil> {
           });
         }
       }
-    } catch (e) {
+    } catch (error) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Erro ao selecionar imagem: $e')),
+        SnackBar(content: Text('Erro ao selecionar imagem: $error')),
       );
     }
   }
@@ -76,14 +87,12 @@ class _EditarPerfilState extends State<EditarPerfil> {
       final fileName =
           'profile-images/${DateTime.now().millisecondsSinceEpoch}_${pickedFile.name}';
       if (kIsWeb) {
-        // Para Web, lê os bytes e faz upload via uploadBinary
         final bytes = await pickedFile.readAsBytes();
         await Supabase.instance.client.storage
             .from('profile-images')
             .uploadBinary(fileName, bytes,
                 fileOptions: FileOptions(contentType: 'image/png'));
       } else {
-        // Para Mobile, cria um objeto File a partir do caminho da imagem
         await Supabase.instance.client.storage
             .from('profile-images')
             .upload(fileName, File(pickedFile.path));
@@ -92,9 +101,9 @@ class _EditarPerfilState extends State<EditarPerfil> {
           .from('profile-images')
           .getPublicUrl(fileName);
       return publicUrl;
-    } catch (e) {
+    } catch (error) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Erro no upload: $e')),
+        SnackBar(content: Text('Erro no upload: $error')),
       );
       return null;
     }
@@ -103,22 +112,47 @@ class _EditarPerfilState extends State<EditarPerfil> {
   Future<void> _salvarAlteracoes() async {
     final currentUser = Supabase.instance.client.auth.currentUser;
     if (currentUser != null) {
-      final usuario = await _database.getUsuario(currentUser.id);
-      if (usuario != null) {
-        final novoUsuario = usuario.copyWith(
-          nome: _nomeController.text,
-          genero: _generoController.text,
-          idade: int.tryParse(_idadeController.text),
-          profileUrl: _profileUrlController.text.isNotEmpty
-              ? _profileUrlController.text
-              : null,
-        );
-        await _database.atualizarUsuario(novoUsuario);
+      try {
+        final usuario = await _database.getUsuario(currentUser.id);
+        if (usuario != null) {
+          final novoUsuario = usuario.copyWith(
+            nome: _nomeController.text,
+            genero: _generoController.text,
+            idade: int.tryParse(_idadeController.text),
+            profileUrl: _profileUrlController.text.isNotEmpty
+                ? _profileUrlController.text
+                : null,
+          );
+          await _database.atualizarUsuario(novoUsuario);
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Perfil atualizado com sucesso!')),
+          );
+          Navigator.pop(context);
+        }
+      } catch (error) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Perfil atualizado com sucesso!')),
+          SnackBar(content: Text('Erro ao salvar alterações: $error')),
         );
-        Navigator.pop(context);
       }
+    }
+  }
+
+  /// Solicita a mudança de cargo atualizando o campo 'mudanca_cargo' para 'pendente'
+  Future<void> _solicitarMudancaCargo() async {
+    final userId = Supabase.instance.client.auth.currentUser?.id;
+    if (userId == null) return;
+    try {
+      await Supabase.instance.client
+          .from('usuarios')
+          .update({'mudanca_cargo': 'pendente'}).eq('id', userId);
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+            content: Text('Solicitação enviada. Aguarde a aprovação!')),
+      );
+    } catch (error) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Erro: $error')),
+      );
     }
   }
 
@@ -135,8 +169,10 @@ class _EditarPerfilState extends State<EditarPerfil> {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Editar Perfil'),
+        title:
+            const Text('Editar Perfil', style: TextStyle(color: Colors.white)),
         backgroundColor: Colors.black,
+        iconTheme: const IconThemeData(color: Colors.white),
       ),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
@@ -151,7 +187,7 @@ class _EditarPerfilState extends State<EditarPerfil> {
                   backgroundImage: imageProvider,
                   child: imageProvider == null
                       ? const Icon(Icons.camera_alt,
-                          size: 40, color: Colors.black54)
+                          size: 40, color: Colors.white)
                       : null,
                 ),
               ),
@@ -180,8 +216,22 @@ class _EditarPerfilState extends State<EditarPerfil> {
                 padding:
                     const EdgeInsets.symmetric(horizontal: 40, vertical: 12),
               ),
-              child: const Text('Salvar'),
+              child:
+                  const Text('Salvar', style: TextStyle(color: Colors.white)),
             ),
+            const SizedBox(height: 20),
+            // Exibe o botão para solicitar mudança de cargo somente se o usuário não for admin.
+            if (_cargo.toLowerCase() != 'admin')
+              ElevatedButton(
+                onPressed: _solicitarMudancaCargo,
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.black,
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 40, vertical: 12),
+                ),
+                child: const Text('Solicitar Mudança de Cargo',
+                    style: TextStyle(color: Colors.white)),
+              ),
           ],
         ),
       ),

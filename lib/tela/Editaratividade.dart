@@ -6,8 +6,7 @@ import 'package:doa_roupa/banco/roupa_db.dart';
 
 class EditarAtividade extends StatefulWidget {
   final String? atividadeId;
-  const EditarAtividade({Key? key, required this.atividadeId})
-      : super(key: key);
+  const EditarAtividade({super.key, required this.atividadeId});
 
   @override
   State<EditarAtividade> createState() => _EditarAtividadeState();
@@ -285,8 +284,9 @@ class _EditarAtividadeState extends State<EditarAtividade> {
 
   @override
   Widget build(BuildContext context) {
-    if (isLoading)
+    if (isLoading) {
       return const Scaffold(body: Center(child: CircularProgressIndicator()));
+    }
     return Scaffold(
       appBar: AppBar(
         title: const Text('Editar Atividade'),

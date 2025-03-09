@@ -1,3 +1,4 @@
+import 'package:doa_roupa/tela/SolicitarMudancaCargo.dart';
 import 'package:flutter/material.dart';
 import 'package:doa_roupa/tela/criar_atividade.dart';
 import 'package:doa_roupa/tela/estoque.dart';
@@ -9,8 +10,7 @@ class HomeActions extends StatelessWidget {
   final String? papelUsuario;
   final VoidCallback onAtualizar;
 
-  const HomeActions({Key? key, this.papelUsuario, required this.onAtualizar})
-      : super(key: key);
+  const HomeActions({super.key, this.papelUsuario, required this.onAtualizar});
 
   @override
   Widget build(BuildContext context) {
@@ -106,6 +106,23 @@ class HomeActions extends StatelessWidget {
                     const EdgeInsets.symmetric(horizontal: 30, vertical: 15),
               ),
               child: const Text('Ver Todas atividades',
+                  style: TextStyle(color: Colors.white, fontSize: 18)),
+            ),
+            ElevatedButton(
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                      builder: (_) => const AprovarMudancaCargo()),
+                );
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.transparent,
+                elevation: 0,
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 30, vertical: 15),
+              ),
+              child: const Text('Aprovar administradores',
                   style: TextStyle(color: Colors.white, fontSize: 18)),
             ),
           ],

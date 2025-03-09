@@ -212,7 +212,7 @@ class _HomeState extends State<Home> with RouteAware {
                                       const SizedBox(height: 12),
                                     ],
                                   );
-                                }).toList(),
+                                }),
                               ],
                             ),
                           ),
