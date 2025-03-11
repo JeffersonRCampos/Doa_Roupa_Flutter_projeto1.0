@@ -47,8 +47,23 @@ class RoupaDatabase {
   }
 
   Future<List<Atividade>> getAtividadesAtivas() async {
+    // Obtém todas as atividades
     final all = await getTodasAtividades();
-    return all
+    final now = DateTime.now();
+
+    // Atualiza no banco as atividades cujo dataFim é anterior à data atual
+    for (final atividade in all) {
+      if (atividade.status == 'em andamento' &&
+          atividade.dataFim.isBefore(now)) {
+        await client
+            .from('atividades')
+            .update({'status': 'concluída'}).eq('id', atividade.id!);
+      }
+    }
+    // Recarrega as atividades após a atualização
+    final updated = await getTodasAtividades();
+    // Retorna apenas as atividades que ainda estão em andamento
+    return updated
         .where((atividade) => atividade.status == 'em andamento')
         .toList();
   }

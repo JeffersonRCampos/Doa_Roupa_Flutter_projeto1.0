@@ -2,7 +2,7 @@ import 'package:doa_roupa/tela/agradecimento.dart';
 import 'package:doa_roupa/tela/doacao.dart';
 import 'package:doa_roupa/tela/login.dart';
 import 'package:doa_roupa/tela/EditarPerfil.dart';
-import 'package:doa_roupa/tela/Acoeshome.dart';
+import 'package:doa_roupa/tela/extraTelas/Acoeshome.dart';
 import 'package:doa_roupa/banco/roupa_db.dart';
 import 'package:doa_roupa/modelo/atividade.dart';
 import 'package:flutter/material.dart';
@@ -203,7 +203,7 @@ class _HomeState extends State<Home> with RouteAware {
                                             AlwaysStoppedAnimation<Color>(
                                           progress >= 1.0
                                               ? Colors.green
-                                              : Colors.blue,
+                                              : Colors.green,
                                         ),
                                       ),
                                       const SizedBox(height: 4),
