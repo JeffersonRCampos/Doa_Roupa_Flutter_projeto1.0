@@ -33,12 +33,15 @@ class _EstoqueGeralState extends State<EstoqueGeral> {
           style: TextStyle(color: Colors.white, fontSize: 24),
         ),
         backgroundColor: Colors.black,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back, color: Colors.white),
+          onPressed: () => Navigator.pop(context),
+        ),
       ),
       body: _estoque.isEmpty
           ? const Center(child: Text('Nenhum item no estoque'))
           : Column(
               children: [
-                // Cabeçalho da tabela
                 Container(
                   padding:
                       const EdgeInsets.symmetric(vertical: 10, horizontal: 16),
@@ -73,7 +76,6 @@ class _EstoqueGeralState extends State<EstoqueGeral> {
                     ],
                   ),
                 ),
-                // Lista de itens do estoque
                 Expanded(
                   child: ListView.builder(
                     itemCount: _estoque.length,
@@ -109,6 +111,8 @@ class _EstoqueGeralState extends State<EstoqueGeral> {
               ],
             ),
       floatingActionButton: FloatingActionButton(
+        backgroundColor: Colors.black,
+        foregroundColor: Colors.white,
         onPressed: () => Navigator.push(
           context,
           MaterialPageRoute(

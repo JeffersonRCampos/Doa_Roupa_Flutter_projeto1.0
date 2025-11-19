@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:doa_roupa/tela/login.dart';
 
-/// Defina um RouteObserver global para monitorar mudanças de rota
 final RouteObserver<PageRoute> routeObserver = RouteObserver<PageRoute>();
 
 void main() async {
@@ -24,9 +23,14 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       title: 'Doação de Roupas',
-      theme: ThemeData(primarySwatch: Colors.blue),
+      theme: ThemeData(
+        brightness: Brightness.light,
+        colorScheme: ColorScheme.fromSeed(
+          seedColor: Color(0xFFFFFFFF),
+        ),
+        useMaterial3: true,
+      ),
       home: const Login(),
-      // Adiciona o RouteObserver para monitorar as mudanças de rota
       navigatorObservers: [routeObserver],
     );
   }

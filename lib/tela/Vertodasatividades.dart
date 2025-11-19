@@ -42,11 +42,15 @@ class _VerTodasAtividadesState extends State<VerTodasAtividades> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Todas as Atividades'),
+        title: const Text(
+          'Todas as Atividades',
+          style: TextStyle(color: Colors.white),
+        ),
         backgroundColor: Colors.black,
+        iconTheme: const IconThemeData(color: Colors.white),
       ),
       body: isLoading
-          ? const Center(child: CircularProgressIndicator())
+          ? const Center(child: CircularProgressIndicator(color: Colors.black))
           : atividades.isEmpty
               ? const Center(child: Text('Nenhuma atividade encontrada.'))
               : ListView.builder(
@@ -54,18 +58,27 @@ class _VerTodasAtividadesState extends State<VerTodasAtividades> {
                   itemBuilder: (context, index) {
                     final atividade = atividades[index];
                     return Card(
+                      color: Colors.white,
                       margin: const EdgeInsets.symmetric(
                           vertical: 8, horizontal: 16),
                       child: ListTile(
-                        title: Text(atividade.titulo),
-                        subtitle: Text(atividade.descricao),
-                        trailing: const Icon(Icons.edit),
+                        title: Text(
+                          atividade.titulo,
+                          style: const TextStyle(color: Colors.black),
+                        ),
+                        subtitle: Text(
+                          atividade.descricao,
+                          style: const TextStyle(color: Colors.black54),
+                        ),
+                        trailing: const Icon(Icons.edit, color: Colors.black),
                         onTap: () async {
                           final result = await Navigator.push(
                             context,
                             MaterialPageRoute(
-                                builder: (_) => EditarAtividade(
-                                    atividadeId: atividade.id!)),
+                              builder: (_) => EditarAtividade(
+                                atividadeId: atividade.id!,
+                              ),
+                            ),
                           );
                           if (result == true) _carregarAtividades();
                         },

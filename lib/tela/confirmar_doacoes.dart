@@ -21,7 +21,6 @@ class _ConfirmarDoacoesState extends State<ConfirmarDoacoes> {
     _carregarDoacoesPendentes();
   }
 
-  // Carrega as doações pendentes do banco de dados
   Future<void> _carregarDoacoesPendentes() async {
     final response = await _database.client
         .from('doacoes')
@@ -33,10 +32,8 @@ class _ConfirmarDoacoesState extends State<ConfirmarDoacoes> {
     });
   }
 
-  // Confirma uma doação e verifica se a atividade foi concluída
   Future<void> _confirmarDoacao(String id) async {
     await _database.confirmarDoacaoComExcedente(id);
-    // Após confirmar a doação, verifica se a atividade vinculada foi concluída
     final doacaoResponse = await _database.client
         .from('doacoes')
         .select('*')
@@ -50,7 +47,7 @@ class _ConfirmarDoacoesState extends State<ConfirmarDoacoes> {
           .select('status, titulo')
           .eq('id', doacao.atividadeId!)
           .single();
-      // Se a atividade foi concluída e o popup ainda não foi mostrado, dispara o popup
+
       if (atividadeResponse['status'] == 'concluída' && !_popupShown) {
         final contribuintes =
             await _database.obterContribuintes(doacao.atividadeId!);
@@ -69,7 +66,6 @@ class _ConfirmarDoacoesState extends State<ConfirmarDoacoes> {
     _carregarDoacoesPendentes();
   }
 
-  // Rejeita uma doação e atualiza a lista
   Future<void> _rejeitarDoacao(String id) async {
     await _database.client
         .from('doacoes')
@@ -80,6 +76,7 @@ class _ConfirmarDoacoesState extends State<ConfirmarDoacoes> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: Colors.white,
       appBar: AppBar(
         title: const Text(
           'Confirmar Doações',
@@ -101,47 +98,50 @@ class _ConfirmarDoacoesState extends State<ConfirmarDoacoes> {
                   margin:
                       const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
                   shape: RoundedRectangleBorder(
+                    side: const BorderSide(color: Colors.black, width: 1),
                     borderRadius: BorderRadius.circular(10),
                   ),
+                  shadowColor: Colors.black,
                   elevation: 2,
                   child: Padding(
                     padding: const EdgeInsets.all(16.0),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        // Título da doação (quantidade e tipo de roupa)
                         Text(
                           '${doacao.quantidade}x ${doacao.tipoRoupa}',
                           style: const TextStyle(
-                            fontSize: 18,
-                            fontWeight: FontWeight.bold,
-                          ),
+                              fontSize: 18,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.black),
                         ),
                         const SizedBox(height: 8),
-                        // Detalhes da doação (tamanho, gênero e destino)
                         Text(
                           'Tamanho: ${doacao.tamanho} | Gênero: ${doacao.genero}',
-                          style: const TextStyle(fontSize: 14),
+                          style: const TextStyle(
+                              fontSize: 14, color: Colors.black),
                         ),
                         Text(
                           'Destino: ${doacao.atividadeId ?? "Estoque Geral"}',
-                          style: const TextStyle(fontSize: 14),
+                          style: const TextStyle(
+                              fontSize: 14, color: Colors.black),
                         ),
                         if (doacao.anonimo)
                           const Text(
                             'Doação Anônima',
                             style: TextStyle(
-                                fontSize: 14, fontStyle: FontStyle.italic),
+                                fontSize: 14,
+                                fontStyle: FontStyle.italic,
+                                color: Colors.black),
                           ),
                         const SizedBox(height: 16),
-                        // Botões de confirmação e rejeição
                         Row(
                           mainAxisAlignment: MainAxisAlignment.end,
                           children: [
                             ElevatedButton(
                               onPressed: () => _confirmarDoacao(doacao.id!),
                               style: ElevatedButton.styleFrom(
-                                backgroundColor: Colors.green,
+                                backgroundColor: Colors.black,
                                 padding: const EdgeInsets.symmetric(
                                     horizontal: 20, vertical: 10),
                                 shape: RoundedRectangleBorder(
@@ -157,7 +157,7 @@ class _ConfirmarDoacoesState extends State<ConfirmarDoacoes> {
                             ElevatedButton(
                               onPressed: () => _rejeitarDoacao(doacao.id!),
                               style: ElevatedButton.styleFrom(
-                                backgroundColor: Colors.red,
+                                backgroundColor: Colors.black,
                                 padding: const EdgeInsets.symmetric(
                                     horizontal: 20, vertical: 10),
                                 shape: RoundedRectangleBorder(
@@ -166,7 +166,7 @@ class _ConfirmarDoacoesState extends State<ConfirmarDoacoes> {
                               ),
                               child: const Text(
                                 'Rejeitar',
-                                style: TextStyle(color: Colors.white),
+                                style: TextStyle(color: Colors.red),
                               ),
                             ),
                           ],

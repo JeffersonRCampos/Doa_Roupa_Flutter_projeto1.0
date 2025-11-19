@@ -16,10 +16,23 @@ class _NovaDoacaoState extends State<NovaDoacao> {
   bool _anonimo = false;
   final RoupaDatabase _database = RoupaDatabase();
 
-  // Lista de itens pedidos pela atividade
   List<Map<String, dynamic>> _itensAtividade = [];
-  // Item selecionado pelo usuário (preenche automaticamente tipo, gênero e tamanho)
   Map<String, dynamic>? _itemSelecionado;
+
+  final List<String> _tiposRoupa = [
+    "Calça",
+    "Camisa",
+    "Bermuda",
+    "Vestido",
+    "Casaco",
+    "Blusa"
+  ];
+  final List<String> _tamanhos = ["Infantil", "P", "M", "G", "GG"];
+  final List<String> _generos = ["Masculino", "Feminino", "Unissex"];
+
+  String? _tipoRoupaSelecionado;
+  String? _tamanhoSelecionado;
+  String? _generoSelecionado;
 
   @override
   void initState() {
@@ -36,9 +49,9 @@ class _NovaDoacaoState extends State<NovaDoacao> {
           .select('itens')
           .eq('id', widget.atividadeId!)
           .single();
-      final data = response;
       setState(() {
-        _itensAtividade = List<Map<String, dynamic>>.from(data['itens'] ?? []);
+        _itensAtividade =
+            List<Map<String, dynamic>>.from(response['itens'] ?? []);
       });
     } catch (error) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -47,30 +60,33 @@ class _NovaDoacaoState extends State<NovaDoacao> {
   }
 
   void _selecionarItem(Map<String, dynamic> item) {
-    setState(() {
-      _itemSelecionado = item;
-    });
+    setState(() => _itemSelecionado = item);
   }
 
   Future<void> _registrarDoacao() async {
-    if (_itemSelecionado == null || _quantidadeController.text.isEmpty) {
+    if (_itemSelecionado == null &&
+        (_tipoRoupaSelecionado == null ||
+            _tamanhoSelecionado == null ||
+            _generoSelecionado == null)) {
       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-          content: Text('Selecione um item e informe a quantidade.')));
+          content: Text('Selecione um item ou preencha os campos.')));
       return;
     }
-    // Cria o mapa de dados da doação
+
     final Map<String, dynamic> doacaoMap = {
       'doador_id': Supabase.instance.client.auth.currentUser?.id ?? '',
-      'tipo_roupa': _itemSelecionado!['tipo_roupa'] ?? '',
-      'genero': _itemSelecionado!['genero'] ?? '',
-      'tamanho': _itemSelecionado!['tamanho'] ?? '',
+      'tipo_roupa': _itemSelecionado?['tipo_roupa'] ?? _tipoRoupaSelecionado,
+      'genero': _itemSelecionado?['genero'] ?? _generoSelecionado,
+      'tamanho': _itemSelecionado?['tamanho'] ?? _tamanhoSelecionado,
       'quantidade': int.parse(_quantidadeController.text),
       'anonimo': _anonimo,
       'status': 'pendente',
     };
+
     if (widget.atividadeId != null) {
       doacaoMap['atividade_id'] = widget.atividadeId;
     }
+
     try {
       await _database.client.from('doacoes').insert(doacaoMap);
       Navigator.pushReplacement(
@@ -79,7 +95,8 @@ class _NovaDoacaoState extends State<NovaDoacao> {
           builder: (_) => Agradecimento(
             nomeDoador: _anonimo ? 'Anônimo' : 'Usuário',
             quantidade: int.parse(_quantidadeController.text),
-            tipoRoupa: _itemSelecionado!['tipo_roupa'] ?? '',
+            tipoRoupa:
+                _itemSelecionado?['tipo_roupa'] ?? _tipoRoupaSelecionado!,
           ),
         ),
       );
@@ -89,21 +106,29 @@ class _NovaDoacaoState extends State<NovaDoacao> {
     }
   }
 
+  InputDecoration campo(String label) {
+    return InputDecoration(
+      labelText: label,
+      filled: true,
+      fillColor: Colors.grey[200],
+      border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+      labelStyle: const TextStyle(color: Colors.black),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: Colors.white,
       appBar: AppBar(
         title: Text(
           widget.atividadeId == null
               ? 'Doar para o Estoque Geral'
               : 'Doar para uma Causa',
-          style: const TextStyle(color: Colors.white, fontSize: 24),
+          style: const TextStyle(color: Colors.white),
         ),
         backgroundColor: Colors.black,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Colors.white),
-          onPressed: () => Navigator.pop(context),
-        ),
+        iconTheme: const IconThemeData(color: Colors.white),
       ),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
@@ -112,91 +137,79 @@ class _NovaDoacaoState extends State<NovaDoacao> {
           children: [
             if (widget.atividadeId != null && _itensAtividade.isNotEmpty) ...[
               const Text('Selecione o item solicitado:',
-                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-              const SizedBox(height: 8),
+                  style: TextStyle(color: Colors.black)),
               Expanded(
                 child: ListView(
                   children: _itensAtividade.map((item) {
                     return RadioListTile<Map<String, dynamic>>(
                       title: Text(
-                          'Tipo: ${item['tipo_roupa']} - Tamanho: ${item['tamanho']} - Gênero: ${item['genero']}'),
-                      subtitle: Text('Qtd solicitada: ${item['quantidade']}'),
+                        '${item['tipo_roupa']} - ${item['tamanho']} - ${item['genero']}',
+                        style: const TextStyle(color: Colors.black),
+                      ),
                       value: item,
                       groupValue: _itemSelecionado,
+                      activeColor: Colors.black,
                       onChanged: (value) => _selecionarItem(value!),
                     );
                   }).toList(),
                 ),
               ),
             ] else ...[
-              // Caso não haja atividade associada, os campos podem ser preenchidos manualmente (opcional)
-              TextFormField(
-                decoration: InputDecoration(
-                  labelText: 'Tipo de Roupa',
-                  border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(10)),
-                  filled: true,
-                  fillColor: Colors.grey[200],
-                ),
+              DropdownButtonFormField<String>(
+                decoration: campo('Tipo de Roupa'),
+                items: _tiposRoupa
+                    .map(
+                      (tipo) =>
+                          DropdownMenuItem(value: tipo, child: Text(tipo)),
+                    )
+                    .toList(),
+                onChanged: (value) =>
+                    setState(() => _tipoRoupaSelecionado = value),
               ),
-              const SizedBox(height: 16),
-              TextFormField(
-                decoration: InputDecoration(
-                  labelText: 'Gênero',
-                  border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(10)),
-                  filled: true,
-                  fillColor: Colors.grey[200],
-                ),
+              const SizedBox(height: 12),
+              DropdownButtonFormField<String>(
+                decoration: campo('Tamanho'),
+                items: _tamanhos
+                    .map(
+                      (tam) => DropdownMenuItem(value: tam, child: Text(tam)),
+                    )
+                    .toList(),
+                onChanged: (value) =>
+                    setState(() => _tamanhoSelecionado = value),
               ),
-              const SizedBox(height: 16),
-              TextFormField(
-                decoration: InputDecoration(
-                  labelText: 'Tamanho',
-                  border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(10)),
-                  filled: true,
-                  fillColor: Colors.grey[200],
-                ),
+              const SizedBox(height: 12),
+              DropdownButtonFormField<String>(
+                decoration: campo('Gênero'),
+                items: _generos
+                    .map(
+                      (gen) => DropdownMenuItem(value: gen, child: Text(gen)),
+                    )
+                    .toList(),
+                onChanged: (value) =>
+                    setState(() => _generoSelecionado = value),
               ),
             ],
-            const SizedBox(height: 16),
-            // Campo para informar a quantidade manualmente
+            const SizedBox(height: 12),
             TextFormField(
               controller: _quantidadeController,
-              decoration: InputDecoration(
-                labelText: 'Quantidade',
-                border:
-                    OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
-                filled: true,
-                fillColor: Colors.grey[200],
-              ),
+              decoration: campo('Quantidade'),
               keyboardType: TextInputType.number,
             ),
-            const SizedBox(height: 16),
             CheckboxListTile(
-              title: const Text('Deseja Doar Anonimamente?'),
+              title: const Text('Doação Anônima?',
+                  style: TextStyle(color: Colors.black)),
               value: _anonimo,
-              onChanged: (value) {
-                setState(() {
-                  _anonimo = value ?? false;
-                });
-              },
-              tileColor: Colors.grey[200],
-              shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(10)),
+              activeColor: Colors.black,
+              checkColor: Colors.white,
+              onChanged: (value) => setState(() => _anonimo = value ?? false),
             ),
-            const SizedBox(height: 24),
             ElevatedButton(
-              onPressed: _registrarDoacao,
               style: ElevatedButton.styleFrom(
                 backgroundColor: Colors.black,
-                padding: const EdgeInsets.symmetric(vertical: 15),
-                shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(10)),
+                foregroundColor: Colors.white,
               ),
-              child: const Text('Enviar Doação',
-                  style: TextStyle(color: Colors.white, fontSize: 18)),
+              onPressed: _registrarDoacao,
+              child: const Text('Enviar Doação'),
             ),
           ],
         ),

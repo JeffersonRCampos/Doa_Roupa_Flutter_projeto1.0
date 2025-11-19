@@ -9,14 +9,10 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
-    
-  
   flutter_localizations:
     sdk: flutter
-
-  
   path: ^1.9.0
-  intl: ^0.19.0
+  intl: 0.20.2
   image_picker: ^0.8.7
   supabase_flutter: ^2.8.3
 
@@ -24,4 +20,6 @@ dev_dependencies:
   flutter_test:
     sdk: flutter
   flutter_lints: ^5.0.0
-  
+
+flutter:
+  uses-material-design: true
